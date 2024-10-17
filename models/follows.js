@@ -1,34 +1,27 @@
 import { Schema, model } from "mongoose";
-
 import mongoosePaginate from "mongoose-paginate-v2";
 
-const FollowSchema = Schema ({
-following_user: {
+const FollowSchema = Schema({
+  following_user: {
     type: Schema.ObjectId,
-    ref:"User",
+    ref: "User",
     required: true
-},
-followed_user: {
+  },
+  followed_user: {
     type: Schema.ObjectId,
+    ref: "User",
     required: true
-},
-create_at: {
+  },
+  created_at: {
     type: Date,
     default: Date.now
-},
-
+  }
 });
 
-// definir el indice unico para evitar seguir varias veces al mismo usuario
-
-FollowSchema.index({following_user: 1},{followed_user: 1}, {unique: true})
-
-//configurar paginacion
-
-FollowSchema.plugin(mongoosePaginate);
+// Definir un índice único para evitar seguir varias veces al mismo usuario
+FollowSchema.index({ following_user: 1, followed_user: 1 }, { unique: true});
 
 // Configrar el plugin de paginación
 FollowSchema.plugin(mongoosePaginate);
 
 export default model("Follow", FollowSchema, "follows");
-

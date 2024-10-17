@@ -1,48 +1,45 @@
 import { Schema, model } from "mongoose";
-
 import mongoosePaginate from "mongoose-paginate-v2";
 
 const UserSchema = Schema ({
-name: {
-    type: String,
-    required: true,
-},
-last_name: {
+  name: {
     type: String,
     required: true
-},
-nick: {
+  },
+  last_name: {
+    type: String,
+    required: true
+  },
+  nick: {
     type: String,
     required: true,
     unique: true
-},
-email: {
+  },
+  email: {
     type: String,
     required: true,
     unique: true
-},
-bio: String,
-
-password: {
+  },
+  bio: String,
+  password: {
     type: String,
     required: true
-},
-rol: {
+  },
+  role: {
     type: String,
     default: "role_user"
-},
-image: {
+  },
+  image: {
     type: String,
     default: "default_user.png"
-},
-create_at: {
+  },
+  created_at: {
     type: Date,
     default: Date.now
-}
+  }
 });
 
-//Pluggin de paginacion de mongo
+// Configurar el plugin de paginación de Mongo
+UserSchema.plugin(mongoosePaginate);
 
-UserSchema.pligin(mongoosePaginate);
-
-export default model("User", UserSchema, "Users")
+export default model("User", UserSchema, "users");
