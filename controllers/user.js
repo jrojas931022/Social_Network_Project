@@ -295,4 +295,84 @@ export const updateUser = async (req, res) => {
   }
 }
 
+//METODO PARA SUBIR AVATAR (FOTO DE PERFIL) Y ACTUALIZAR EL CAMPO IMAGEN DEL USER
 
+  // Método para subir AVATAR (imagen de perfil) y actualizamos el campo image del User
+  export const uploadAvatar = async (req, res) => {
+    try {
+      // Verificar si se ha subido un archivo
+      if(!req.file){
+        return res.status(400).send({
+          status: "error",
+          message: "Error la petición no incluye la imagen"
+        });
+      }
+  
+      // Obtener la URL del archivo subido en Cloudinary
+      const avatarUrl = req.file.path;
+  
+      // Guardar la imagen en la BD
+      const userUpdated = await User.findByIdAndUpdate(
+        req.user.userId,
+        { image: avatarUrl },
+        { new: true }
+      );
+  
+      // Verificar si la actualización fue exitosa
+      if(!userUpdated){
+        return res.status(500).send({
+          status: "error",
+          message: "Error al subir el archivo del "
+        });
+      }
+  
+      // Devolver respuesta exitosa
+      return res.status(200).json({
+        status: "success",
+        user: userUpdated,
+        file: avatarUrl
+      });
+  
+    } catch (error) {
+      console.log("Error al subir el archivo del avatar", error);
+      return res.status(500).send({
+        status: "error",
+        message: "Error al subir el archivo del avatar"
+      });
+    }
+  };
+
+  //metodo para mostrar el avatar
+
+// Método para mostrar el AVATAR (imagen de perfil)
+export const avatar = async (req, res) => {
+  try {
+    // Obtener el ID desde el parámetro del archivo 
+    const userId = req.params.id;
+
+    // Buscar el usuario en la base de datos para obtener la URL de Cloudinary
+    const user = await User.findById(userId).select('image');
+
+    // Verificar si el usuario existe y tiene una imagen
+    if(!user || !user.image){
+      return res.status(404).send({
+        status: "error",
+        message: "No existe usuario o imagen"
+      });
+    }
+
+    // Devolver la URL de la imagemn desde cloudinary
+    return res.status(200).send({
+      status: "success",
+      imageUrl: user.image // URL de Cloudinary
+    });
+
+  } catch (error) {
+  console.log("Error al mostrar el archivo del avatar", error);
+  return res.status(500).send({
+    status: "error",
+    message: "Error al mostrar el archivo del avatar"
+  });
+  }
+};
+  
