@@ -1,7 +1,9 @@
-import User from '../models/users.js';  
-import bcrypt from 'bcrypt';  
-import { createToken } from '../services/jwt.js';  
-
+import User from '../models/users.js';
+import Follow from '../models/follows.js';
+import Publication from '../models/publications.js';
+import bcryptjs from 'bcryptjs';
+import { createToken } from '../services/jwt.js';
+import { followThisUser, followUserIds } from '../services/followServices.js';
 // Método de prueba del controlador user  
 export const testUser = (req, res) => {  
   return res.status(200).send({  
@@ -43,15 +45,15 @@ export const register = async (req, res) => {
     }  
 
     // Cifrar la contraseña  
-    const salt = await bcrypt.genSalt(10);  
-    const hashedPassword = await bcrypt.hash(user_to_save.password, salt);  
+    const salt = await bcryptjs.genSalt(10);  
+    const hashedPassword = await bcryptjs.hash(user_to_save.password, salt);  
     user_to_save.password = hashedPassword;  
 
     // Guardar el usuario en la base de datos  
     await user_to_save.save();  
 
     // Devolver el usuario registrado  
-    return res.status(201).json({  
+    return res.status(200).json({  
       status: "created",  
       message: "Registro de usuario exitoso",  
       user_to_save  
@@ -92,7 +94,7 @@ export const login = async (req, res) => {
     }  
 
     // Comprobar su contraseña  
-    const validPassword = await bcrypt.compare(params.password, userBD.password);  
+    const validPassword = await bcryptjs.compare(params.password, userBD.password);  
 
     // Si la contraseña es incorrecta (false)  
     if (!validPassword) {  
@@ -129,51 +131,49 @@ export const login = async (req, res) => {
   }  
 };  
 
+
 export const profile = async (req, res) => {
   try {
-    // obtener el id del usuario desde los parametros de la url 
+    // Obtener el ID del usuario desde los párametros de la URL
     const userId = req.params.id;
 
-    // Verificar si el ID del usuariuo autenticado esta disponible 
+    // Verificar si el ID del usuario autenticado está disponible
     if(!req.user || !req.user.userId){
       return res.status(401).send({
-        status:"success",
-        message: "Usuario No Autenticado"
+        status: "success",
+        message: "Usuario no autenticado"
       });
     }
 
-    //Buscar el usuario en la BD y excluir los datos que no queremos mostrar
-
+    // Buscar el usuario en la BD y excluimos los datos que no queremos mostrar
     const userProfile = await User.findById(userId).select('-password -role -email -__v');
 
-    //verificar si el usuario buscado no existe
-
+    // Verificar si el usuario buscado no existe
     if(!userProfile){
       return res.status(404).send({
-        status:"success",
+        status: "success",
         message: "Usuario no encontrado"
       });
     }
 
-    //Devolver la informacion del perfil del usuario solicitado
- // Información de seguimiento: id del usuario identificado (req.user.userId) y el id del usuario del perfil que queremos consultar (userId = req.params.id)
- const followInfo = await followThisUser(req.user.userId, userId);
+    // Información de seguimiento: id del usuario identificado (req.user.userId) y el id del usuario del perfil que queremos consultar (userId = req.params.id)
+    const followInfo = await followThisUser(req.user.userId, userId);
 
-
+    // Devolver la información del perfil del usuario solicitado
     return res.status(200).json({
       status: "success",
       user: userProfile,
-      followinUser
-    })
+      followInfo
+    });
 
   } catch (error) {
-    console.log("Error al obtener el perfil de usuario", error);
+    console.log("Error al obtener el perfil del usuario: ", error);
     return res.status(500).send({
-      status: "Error al obtener el perfil de usuario",
-      message
-    })
+      status: "error",
+      message: "Error al obtener el perfil del usuario"
+    });
   }
-}
+};
 
 //metodo para listar los usuarios
 
@@ -187,7 +187,7 @@ export const listUsers = async (req, res) => {
     let page = req.params.page ? parseInt(req.params.page, 10) : 1;
 
     // 2. Configurar los ítems por página a mostrar
-    let itemsPerPage = req.query.limit ? parseInt(req.query.limit, 10) : 2;
+    let itemsPerPage = req.query.limit ? parseInt(req.query.limit, 10) : 6;
 
     // Realizar consulta paginada
     const options = {
@@ -267,7 +267,7 @@ export const updateUser = async (req, res) => {
     // Cifrar la contraseña en caso que la envíen en la petición
     if(userToUpdate.password){
       try {
-        let pwd = await bcrypt.hash(userToUpdate.password, 10);
+        let pwd = await bcryptjs.hash(userToUpdate.password, 10);
         userToUpdate.password = pwd;
       } catch (hashError) {
         return res.status(500).send({
@@ -354,36 +354,33 @@ export const updateUser = async (req, res) => {
 
   //metodo para mostrar el avatar
 
-// Método para mostrar el AVATAR (imagen de perfil)
-export const avatar = async (req, res) => {
-  try {
-    // Obtener el ID desde el parámetro del archivo 
-    const userId = req.params.id;
-
-    // Buscar el usuario en la base de datos para obtener la URL de Cloudinary
-    const user = await User.findById(userId).select('image');
-
-    // Verificar si el usuario existe y tiene una imagen
-    if(!user || !user.image){
-      return res.status(404).send({
-        status: "error",
-        message: "No existe usuario o imagen"
-      });
+  export const avatar = async (req, res) => {
+    try {
+      // Obtener el ID desde el parámetro del archivo 
+      const userId = req.params.id;
+  
+      // Buscar el usuario en la base de datos para obtener la URL de Cloudinary
+      const user = await User.findById(userId).select('image');
+  
+      // Verificar si el usuario existe y tiene una imagen
+      if(!user || !user.image){
+        return res.status(404).send({
+          status: "error",
+          message: "No existe usuario o imagen"
+        });
+      }
+  
+      // Redirigir a la URL de la imagen en Cloudinary
+      return res.redirect(user.image);
+  
+    } catch (error) {
+    console.log("Error al mostrar el archivo del avatar", error);
+    return res.status(500).send({
+      status: "error",
+      message: "Error al mostrar el archivo del avatar"
+    });
     }
-
-    // Devolver la URL de la imagemn desde cloudinary
-    return res.direct(user.image);
-
- 
-
-  } catch (error) {
-  console.log("Error al mostrar el archivo del avatar", error);
-  return res.status(500).send({
-    status: "error",
-    message: "Error al mostrar el archivo del avatar"
-  });
-  }
-};
+  };
   
 
 // Método para mostrar contador de seguidores y publicaciones

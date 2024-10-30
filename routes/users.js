@@ -1,10 +1,9 @@
 import { Router } from "express";
-import { testUser, register, login, profile, listUsers, updateUser, uploadAvatar, counters } from "../controllers/user.js";
+import { testUser, register, login, profile, listUsers, updateUser, uploadAvatar, avatar, counters } from "../controllers/user.js";
 import { ensureAuth } from '../middlewares/auth.js';
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import pkg from 'cloudinary';
-import { avatar } from "../controllers/user.js";
 const { v2: cloudinary } = pkg;
 
 // Configuración de subida de archivos en Cloudinary
